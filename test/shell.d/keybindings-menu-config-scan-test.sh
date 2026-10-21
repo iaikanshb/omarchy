@@ -55,3 +55,21 @@ rendered=$(env -i PATH="$stub_bin:$ROOT/bin:$PATH" HOME="$home" \
 grep -qP '→ Terminal\texec\tomarchy-launch-terminal$' "$tmpdir"/cache/omarchy/keybindings-*.records ||
   fail "the config scan reaches the binds after a config that walks a result set" "$rendered"
 pass "the config scan ends when the config walks a result set"
+
+# A config that never finishes loading must not keep the menu from opening
+# either: the scan has a budget, and the binds Hyprland reports are still there
+# after it.
+home="$tmpdir/hanging-home"
+mkdir -p "$home/.config/hypr"
+cat >"$home/.config/hypr/hyprland.lua" <<'LUA'
+while true do end
+LUA
+
+rendered=$(env -i PATH="$stub_bin:$ROOT/bin:$PATH" HOME="$home" \
+  XDG_CACHE_HOME="$tmpdir/cache-hanging" OMARCHY_PATH="$ROOT" \
+  OMARCHY_KEYBINDINGS_SCAN_TIMEOUT=2 \
+  timeout 30 bash "$menu" --print)
+
+grep -q 'SUPER + RETURN  *→ Terminal' <<<"$rendered" ||
+  fail "the menu opens when the config never finishes loading" "$rendered"
+pass "the menu opens when the config never finishes loading"
