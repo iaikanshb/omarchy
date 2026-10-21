@@ -227,9 +227,17 @@ local function dsp_proxy(path)
   })
 end
 
+-- The stub stands in for Hyprland's Lua API while the config is scanned for
+-- binds. A config that walks a result set (ipairs(hl.get_monitors())) has to
+-- see an empty one here: a stub that answers every index forever never lets
+-- the scan end, and the menu waits on it.
 local noop
 noop = setmetatable({}, {
-  __index = function()
+  __index = function(_, key)
+    if type(key) == "number" then
+      return nil
+    end
+
     return noop
   end,
   __call = function()
